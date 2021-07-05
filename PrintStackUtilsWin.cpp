@@ -1,9 +1,8 @@
-#include "BfdInfo.h"
-
 #include <windows.h>
 #include <iostream>
 
 #if defined(__MINGW32__)
+#include "BfdInfo.h"
 #include <cxxabi.h>
 #endif
 #include <DbgHelp.h>
@@ -19,6 +18,7 @@ const char* nameFormat = "%s [0x%lx] %s";
 static void printLine(HANDLE hProcess, PLATFORMDWORD address, bool showErrors = false);
 static void getModuleName(HANDLE hProcess, PLATFORMDWORD address, char* moduleBuff, bool showErrors = false);
 static void printSymbol(HANDLE hProcess, PLATFORMDWORD address, bool showErrors = false);
+static std::string getLastErrorMessage(const char *prefix);
 
 void printStack()
 {
@@ -27,7 +27,7 @@ void printStack()
 
     if (SymInitialize(process, nullptr, TRUE) == FALSE)
     {
-        std::cerr << mgt::bpl::Utils::Logger::getLastErrorMsgString("SymInitialize.");
+        std::cerr << getLastErrorMsgString("SymInitialize.");
         return;
     }
     SymSetOptions(SymGetOptions() | SYMOPT_LOAD_LINES | SYMOPT_DEBUG);
@@ -92,7 +92,7 @@ void getModuleName(HANDLE hProcess, PLATFORMDWORD address, char* moduleBuff, boo
     }
     else if (showErrors)
     {
-        std::cerr << mgt::bpl::Utils::Logger::getLastErrorMsgString("GetModuleFileNameA");
+        std::cerr << getLastErrorMsgString("GetModuleFileNameA");
     }
 }
 void printSymbol(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
@@ -109,7 +109,7 @@ void printSymbol(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
     }
     else if (showErrors)
     {
-        std::cerr << mgt::bpl::Utils::Logger::getLastErrorMsgString("SymGetSymFromAddr");
+        std::cerr << getLastErrorMsgString("SymGetSymFromAddr");
     }
 }
 #if _WIN64
@@ -129,7 +129,7 @@ void printLine(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
     }
     else if (showErrors)
     {
-        std::cerr << mgt::bpl::Utils::Logger::getLastErrorMsgString("SymFromAddr");
+        std::cerr << getLastErrorMsgString("SymFromAddr");
     }
 }
 #else
@@ -145,7 +145,33 @@ void printLine(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
     }
     else if (showErrors)
     {
-        std::cerr << mgt::bpl::Utils::Logger::getLastErrorMsgString("SymGetLineFromAddr");
+        std::cerr << getLastErrorMsgString("SymGetLineFromAddr");
     }
 }
 #endif
+
+std::wstring getLastErrorMessage(const char* prefix)
+{
+    TCHAR msgBuff[256];
+    DWORD dw = GetLastError();
+
+    int result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+                               nullptr,
+                               dw,
+                               MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+                               msgBuff,
+                               sizeof(msgBuff),
+                               nullptr);
+
+    return std::wstring(msgBuff, msgBuff + result);
+}
+std::string Logger::getLastErrorMsgString(const char* prefix) noexcept
+{
+    auto wstr = getLastErrorMessage();
+    auto msg = std::u16string(reinterpret_cast<const char16_t*>(wstr.c_str()), wstr.size());
+    std::string result(prefix);
+    result += defaultDelimiter;
+    result += msg;
+
+    return result;
+}
