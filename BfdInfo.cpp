@@ -1,5 +1,4 @@
 #include "BfdInfo.h"
-//#include "utils/Logger.h"
 #include <string>
 #include <sstream>
 #include <cstring>
@@ -103,7 +102,7 @@ asymbol** BfdInfo::readSymbolTable(bfd* bfd, const char* fileName)
     {
         if (fileName[0] == '/') // we ignore win modules
         {
-            //mgtLogError("Error bfd file \"%s\" flagged as having no symbols.\n", fileName);
+            printf("Error bfd file \"%s\" flagged as having no symbols.\n", fileName);
         }
         return nullptr;
     }
@@ -118,7 +117,7 @@ asymbol** BfdInfo::readSymbolTable(bfd* bfd, const char* fileName)
     }
     if (symcount < 0)
     {
-        //mgtLogError("Error bfd file \"%s\", found no symbols.\n", fileName);
+        printf("Error bfd file \"%s\", found no symbols.\n", fileName);
         return nullptr;
     }
 
@@ -130,13 +129,13 @@ bfd* BfdInfo::openBfdFile(const char* fileName)
     bfd* abfd = bfd_openr(fileName, nullptr);
     if (!abfd)
     {
-        //mgtLogError("Error opening bfd file \"%s\"\n", fileName);
+        printf("Error opening bfd file \"%s\"\n", fileName);
         return {};
     }
 
     if (bfd_check_format(abfd, bfd_archive))
     {
-        //mgtLogError("Cannot get addresses from archive \"%s\"\n", fileName);
+        printf("Cannot get addresses from archive \"%s\"\n", fileName);
         bfd_close(abfd);
         return {};
     }
@@ -144,7 +143,7 @@ bfd* BfdInfo::openBfdFile(const char* fileName)
     char** matching = nullptr;
     if (!bfd_check_format_matches(abfd, bfd_object, &matching))
     {
-        //mgtLogError("Format does not match for archive \"%s\"\n", fileName);
+        printf("Format does not match for archive \"%s\"\n", fileName);
         bfd_close(abfd);
         return {};
     }
@@ -200,7 +199,7 @@ void BfdInfo::findAddressInSection(bfd* bfd, asection* section, void* data)
 void BfdInfo::init()
 {
 #ifdef _WIN32
-    mgtTrace() << prefix << " Module name: " << _moduleName;
+    std::cerr << prefix << " Module name: " << _moduleName;
 #endif
     bfd_init();
     if ((_bfd = openBfdFile(_moduleName.c_str())))

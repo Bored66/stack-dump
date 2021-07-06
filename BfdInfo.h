@@ -11,7 +11,7 @@
 #define PACKAGE_VERSION 1
 #include <bfd.h>
 struct dl_phdr_info;
-#elif !defined(MGT_OS_WINDOWS)
+#elif !defined(_WIN32)
 #include <bfd.h>
 struct dl_phdr_info;
 #endif

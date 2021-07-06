@@ -105,7 +105,7 @@ void printSymbol(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
     symbol->MaxNameLength = maxNameLength;
     if (SymGetSymFromAddr(hProcess, address, &offset, symbol))
     {
-        mgtTrace(nameFormat, prefix, symbol->Address, symbol->Name);
+        printf(nameFormat, prefix, symbol->Address, symbol->Name);
     }
     else if (showErrors)
     {
