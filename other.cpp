@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void printStack();
+extern void printStack();
 
 void other()
 {

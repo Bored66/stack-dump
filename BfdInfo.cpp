@@ -32,7 +32,7 @@ BfdInfo::BfdInfo()
 #ifdef _WIN32
     TCHAR moduleName[_MAX_PATH];
     GetModuleFileName(nullptr, moduleName, sizeof(moduleName));
-    _moduleName = bpl::String::fromWstring(moduleName).toStdString(); // TODO: use bpl::String for _moduleName?
+    _moduleName = moduleName;
     init();
 #else
 

@@ -11,14 +11,17 @@
 #if _WIN64
 using PLATFORMDWORD = DWORD64;
 const char* nameFormat = "%s [0x%I64x] %s";
+#warning We are 64-bit platform
 #else
 using PLATFORMDWORD = DWORD;
 const char* nameFormat = "%s [0x%lx] %s";
+#warning We are NOT 64-bit platform
 #endif
 static void printLine(HANDLE hProcess, PLATFORMDWORD address, bool showErrors = false);
 static void getModuleName(HANDLE hProcess, PLATFORMDWORD address, char* moduleBuff, bool showErrors = false);
 static void printSymbol(HANDLE hProcess, PLATFORMDWORD address, bool showErrors = false);
-static std::string getLastErrorMessage(const char *prefix);
+static std::wstring getLastErrorMsgString(const wchar_t *prefix) noexcept;
+const wchar_t *defaultDelimiter = L":";
 
 void printStack()
 {
@@ -27,7 +30,7 @@ void printStack()
 
     if (SymInitialize(process, nullptr, TRUE) == FALSE)
     {
-        std::cerr << getLastErrorMsgString("SymInitialize.");
+        std::wcerr << getLastErrorMsgString(L"SymInitialize.");
         return;
     }
     SymSetOptions(SymGetOptions() | SYMOPT_LOAD_LINES | SYMOPT_DEBUG);
@@ -65,11 +68,11 @@ void printStack()
         getModuleName(process, frame.AddrPC.Offset, moduleBuff);
 #if defined(__MINGW32__)
         bfdu.init(moduleBuff);
-        bpl::String result = bfdu.getSymbolByAddr(&frame.AddrPC.Offset);
+        std::string result = bfdu.getSymbolByAddr(&frame.AddrPC.Offset);
         if (not result.empty())
         {
-            printf(nameFormat, prefix, frame.AddrPC.Offset, result.toStdString().c_str());
-            if (result.find("?") == bpl::String::npos)
+            printf(nameFormat, prefix, frame.AddrPC.Offset, result.c_str());
+            if (result.find("?") == std::string::npos)
             {
                 continue;
             }
@@ -87,12 +90,12 @@ void getModuleName(HANDLE hProcess, PLATFORMDWORD address, char* moduleBuff, boo
     {
         if (showErrors)
         {
-            std::cerr << prefix << " Module name: " << moduleBuff;
+            std::wcerr << prefix << L" Module name: " << moduleBuff;
         }
     }
     else if (showErrors)
     {
-        std::cerr << getLastErrorMsgString("GetModuleFileNameA");
+        std::wcerr << getLastErrorMsgString(L"GetModuleFileNameA");
     }
 }
 void printSymbol(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
@@ -109,7 +112,7 @@ void printSymbol(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
     }
     else if (showErrors)
     {
-        std::cerr << getLastErrorMsgString("SymGetSymFromAddr");
+        std::wcerr << getLastErrorMsgString(L"SymGetSymFromAddr");
     }
 }
 #if _WIN64
@@ -124,12 +127,15 @@ void printLine(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
     {
         if (line.FileName)
         {
-            std::cerr << prefix << line.FileName << ":" << line.LineNumber;
+            std::wcerr << prefix << line.FileName 
+                                << defaultDelimiter
+                                << line.LineNumber;
+            std::cout << "dump stack:" << std::endl;
         }
     }
     else if (showErrors)
     {
-        std::cerr << getLastErrorMsgString("SymFromAddr");
+        std::wcerr << getLastErrorMsgString(L"SymFromAddr");
     }
 }
 #else
@@ -141,16 +147,18 @@ void printLine(HANDLE hProcess, PLATFORMDWORD address, bool showErrors)
     DWORD offset_ln = 0;
     if (SymGetLineFromAddr(hProcess, address, &offset_ln, &line))
     {
-        std::cerr << prefix << line.FileName << ":" << line.LineNumber;
+            std::wcerr << prefix << line.FileName 
+                                << defaultDelimiter
+                                << line.LineNumber;
+            std::cout << "dump stack:" << std::endl;
     }
     else if (showErrors)
     {
-        std::cerr << getLastErrorMsgString("SymGetLineFromAddr");
+        std::wcerr << getLastErrorMsgString(L"SymGetLineFromAddr");
     }
 }
 #endif
-
-std::wstring getLastErrorMessage(const char* prefix)
+std::wstring getLastErrorMessage(const wchar_t* prefix)
 {
     TCHAR msgBuff[256];
     DWORD dw = GetLastError();
@@ -165,11 +173,11 @@ std::wstring getLastErrorMessage(const char* prefix)
 
     return std::wstring(msgBuff, msgBuff + result);
 }
-std::string Logger::getLastErrorMsgString(const char* prefix) noexcept
+std::wstring getLastErrorMsgString(const wchar_t* prefix) noexcept
 {
-    auto wstr = getLastErrorMessage();
-    auto msg = std::u16string(reinterpret_cast<const char16_t*>(wstr.c_str()), wstr.size());
-    std::string result(prefix);
+    auto msg = getLastErrorMessage(prefix);
+    //auto msg = std::u16string(reinterpret_cast<const char16_t*>(wstr.c_str()), wstr.size());
+    std::wstring result(prefix);
     result += defaultDelimiter;
     result += msg;
 
