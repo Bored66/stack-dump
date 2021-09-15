@@ -7,11 +7,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCES main.cpp other.cpp BfdInfo.cpp)
 
-set(WIN32, 1)
-
 if (WIN32)
 set(SOURCES ${SOURCES} PrintStackUtilsWin.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
+target_compile_options(${PROJECT_NAME} PRIVATE
+-ggdb
+-O0
+)
 get_filename_component(CURR_MINGW_CXX_DIR ${CMAKE_CXX_COMPILER} DIRECTORY ABSOLUTE)
 set(CURR_MINGW_LIB_DIR ${CURR_MINGW_CXX_DIR}/../lib)
 find_library(BFD_LIBRARY bfd HINTS ${CURR_MINGW_LIB_DIR} ${CURR_MINGW_LIB_DIR}/binutils)
@@ -27,7 +29,6 @@ if (NOT BFD_LIBRARY)
 else()
     message("Found BFD library ${BFD_LIBRARY} / ${BINUTILS_INCLUDE_DIR}  ")
 endif()
-message("${SOURCES}")
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         Dbghelp
@@ -42,7 +43,7 @@ target_link_libraries(${PROJECT_NAME}
         )
 else()
 set(SOURCES ${SOURCES} PrintStackUtils.cpp)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} dl bfd)
 add_executable(${PROJECT_NAME} ${SOURCES})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} dl bfd)
 endif()
 

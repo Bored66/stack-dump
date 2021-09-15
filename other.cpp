@@ -12,5 +12,9 @@ void other()
 void another(const char*)
 {
     cout << "dump stack:" << endl;
-    other();
+    auto lmbd = []()
+    {
+        other();
+    };
+    lmbd();
 }
